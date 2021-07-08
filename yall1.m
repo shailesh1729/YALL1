@@ -95,7 +95,8 @@ b1 = b / bmax;
 if posrho, opts.rho   = opts.rho / bmax; end
 if posdel, opts.delta = opts.delta / bmax; end
 if isfield(opts,'xs'), opts.xs = opts.xs/bmax; end
-    
+
+% fprintf('b_max: %f\n', bmax); 
 % solve the problem
 t0 = cputime; 
 [x1,Out] = yall1_solve(A, At, b1, x0, z0, opts);
@@ -118,13 +119,13 @@ function [A,At,b,opts] = linear_operators(A0, b0, opts)
 % (possibly modify RHS b if nu > 0)
 %
 b = b0;
-if isnumeric(A0); 
-    if size(A0,1) > size(A0,2); 
+if isnumeric(A0) 
+    if size(A0,1) > size(A0,2) 
         error('A must have m < n');
     end
     A  = @(x) A0*x;
     At = @(y) (y'*A0)';
-elseif isstruct(A0) && isfield(A0,'times') && isfield(A0,'trans');
+elseif isstruct(A0) && isfield(A0,'times') && isfield(A0,'trans')
     A  = A0.times;
     At = A0.trans;
 elseif isa(A0,'function_handle')
@@ -184,6 +185,7 @@ function [x, Out] = yall1_solve(A,At,b,x0,z0,opts)
 
 %% initialization
 m = length(b); bnrm = norm(b);
+
 [tol,mu,maxit,print,nu,rho,delta, ... 
     w,nonneg,nonorth,gamma] = get_opts;
 x = x0; z = z0;
@@ -202,18 +204,26 @@ rdmu1 = rdmu + 1;
 bdmu = b / mu;
 ddmu = delta / mu;
 
+%fprintf('rho: %f\n', rho)
+%fprintf('rdmu: %f\n', rdmu)
+%fprintf('rdmu1: %f\n', rdmu1)
+%fprintf('ddmu: %f\n', ddmu)
+
 Out.cntA = 0; Out.cntAt = 0;
 rel_gap = 0;  rel_rd  = 0;
 rel_rp  = 0;  stop = 0;
 
+%fprintf('mu: %f\n', mu); 
+
 %% main iterations
 for iter = 1:maxit
-    
+    %fprintf('\n[%02d] ', iter);
+    %spx.io.print.vector(x(1:10), 5)
     %% calculations
     xdmu = x / mu;
-    if ~nonorth; % orthonormal A
+    if ~nonorth % orthonormal A
         y = A(z - xdmu) + bdmu;
-        if rho > 0;
+        if rho > 0
             y = y / rdmu1;
         elseif delta > 0
             y = max(0, 1 - ddmu/norm(y))*y;
@@ -230,6 +240,7 @@ for iter = 1:maxit
         y = y - stp*ry;
         Aty = Aty - stp*Atry;
     end
+    %spx.io.print.vector(y(1:10), 5)
     
     z = Aty + xdmu;
     z = proj2box(z,w,nonneg,nu,m);
@@ -241,8 +252,8 @@ for iter = 1:maxit
     x = x + (gamma*mu) * rd;
         
     %% other chores
-    if rem(iter,2) == 0, 
-        check_stopping; update_mu; 
+    if rem(iter,2) == 0
+        check_stopping; %update_mu; 
     end
     if print > 1; iprint2; end
     if stop; break; end 
@@ -252,7 +263,7 @@ end % main iterations
 % output
 Out.iter = iter;
 Out.mu = [mu_orig mu];
-Out.obj = [objp objd];
+%Out.obj = [objp objd];
 Out.y = y; Out.z = z;
 
 if iter == maxit; Out.exit = 'Exit: maxiter'; end
@@ -318,6 +329,7 @@ if print; iprint1(1); end
         
         % check relative change
         xrel_chg = norm(x-xp)/norm(x);
+        %fprintf('\n rel_x: %.2e, p_obj: %.2e, d_obj:%.2e, rel_rd: %.2e, rel_gap: %.2e', xrel_chg, objp, objp, rel_rd, rel_gap)
         if xrel_chg < tol*(1 - q)
             Out.exit = 'Exit: Stablized'; 
             stop = 1; return; 
@@ -331,12 +343,12 @@ if print; iprint1(1); end
         if ~d_feasible; return; end
 
         % check primal residual
-        if rho == 0, 
+        if rho == 0 
             rp = A(x) - b; 
             rpnrm = norm(rp);
             Out.cntA = Out.cntA + 1; 
-        end;    
-        if rho > 0;
+        end    
+        if rho > 0
             p_feasible = true;
         elseif delta > 0
             p_feasible = rpnrm <= delta*(1 + tol);

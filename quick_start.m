@@ -1,12 +1,12 @@
 clear;
 if ~exist('Utilities','dir'); Run_Me_1st; end
-
+rng('default');
 % problem sizes 
 n = 1000; m = 300; k = 60; 
 sigma = 0.01;
 opts.rho = eps;
 
-nrun = 10;
+nrun = 1;
 Iter = zeros(nrun,1);
 Err = zeros(nrun,1);
 T = zeros(nrun,1);
@@ -24,8 +24,8 @@ for j = 1:nrun
     if ~exist('nonorth','var');
         nonorth = randn > 0;
     end
-    
-    if nonorth;
+    % nonorth = 0;
+    if nonorth
         d = 1./sqrt(sum(A.^2,2));
         A = sparse(1:m,1:m,d)*A;
         b = d.*b;
@@ -36,20 +36,21 @@ for j = 1:nrun
     
     % call YALL1
     opts.tol = 5e-8;
-    if sigma > 0;
+    if sigma > 0
         opts.tol = 5e-3;
         opts.rho = sigma;
     end
     opts.print = 0;
     t0 = tic; [x,Out] = yall1(A, b, opts);
     err = norm(x-xs)/norm(xs);
-    fprintf('nonorth: %i, iter = %4i, relative error = %e\n',...
+    fprintf('\nnonorth: %i, iter = %4i, relative error = %e\n',...
         nonorth,Out.iter,err)
     Iter(j) = Out.iter;
     Err(j) = err;
     T(j) = toc(t0);
+    save(sprintf('data/random_partial_onb_%d.mat', j), 'A', 'b', 'x', 'xs');
 end
 
 fprintf('\n[n,m,k] = [%i,%i,%i], %i runs\n',n,m,k,nrun);
-fprintf('Average: iter %3i, rel_err %6.2e, time %6.2e\n\n',...
-    round(mean(Iter)),mean(Err),mean(T))
+fprintf('Average: iter %3i, rel_err %6.2e, time %6.2f ms\n\n',...
+    round(mean(Iter)),mean(Err),mean(T)*1000)
