@@ -204,7 +204,7 @@ rdmu1 = rdmu + 1;
 bdmu = b / mu;
 ddmu = delta / mu;
 
-%fprintf('rho: %f\n', rho)
+%fprintf('rho: %e\n', rho)
 %fprintf('rdmu: %f\n', rdmu)
 %fprintf('rdmu1: %f\n', rdmu1)
 %fprintf('ddmu: %f\n', ddmu)
@@ -215,10 +215,9 @@ rel_rp  = 0;  stop = 0;
 
 %fprintf('mu: %f\n', mu); 
 
+%spx.io.print.vector(x(1:10), 5)
 %% main iterations
 for iter = 1:maxit
-    %fprintf('\n[%02d] ', iter);
-    %spx.io.print.vector(x(1:10), 5)
     %% calculations
     xdmu = x / mu;
     if ~nonorth % orthonormal A
@@ -240,8 +239,6 @@ for iter = 1:maxit
         y = y - stp*ry;
         Aty = Aty - stp*Atry;
     end
-    %spx.io.print.vector(y(1:10), 5)
-    
     z = Aty + xdmu;
     z = proj2box(z,w,nonneg,nu,m);
     
@@ -251,6 +248,11 @@ for iter = 1:maxit
     rd = Aty - z; xp = x;
     x = x + (gamma*mu) * rd;
         
+%     fprintf('\n[%02d] ', iter);
+%     spx.io.print.vector(x(1:10), 6)
+%     spx.io.print.vector(y(1:10), 6)
+    %spx.io.print.vector(z(1:10), 6)
+    
     %% other chores
     if rem(iter,2) == 0
         check_stopping; %update_mu; 
@@ -329,7 +331,7 @@ if print; iprint1(1); end
         
         % check relative change
         xrel_chg = norm(x-xp)/norm(x);
-        %fprintf('\n rel_x: %.2e, p_obj: %.2e, d_obj:%.2e, rel_rd: %.2e, rel_gap: %.2e', xrel_chg, objp, objp, rel_rd, rel_gap)
+        %fprintf('rel_x: %.2e, p_obj: %.2e, d_obj:%.2e, rel_rd: %.2e, rel_gap: %.2e', xrel_chg, objp, objp, rel_rd, rel_gap)
         if xrel_chg < tol*(1 - q)
             Out.exit = 'Exit: Stablized'; 
             stop = 1; return; 
@@ -379,7 +381,7 @@ if print; iprint1(1); end
                 rel_rd = rdnrm / norm(z);
                 rpnrm = norm(rp);
                 rel_rp = rpnrm / bnrm;
-                fprintf(' Rel_Gap   Rel_ResD  Rel_ResP\n');
+                fprintf('\n Rel_Gap   Rel_ResD  Rel_ResP\n');
                 fprintf(' %8.2e  %8.2e  %8.2e\n',rel_gap,rel_rd,rel_rp);
         end
     end
